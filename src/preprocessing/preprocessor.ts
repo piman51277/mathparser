@@ -68,6 +68,7 @@ export function preprocessor(
     if (/[a-z]/.test(inputStr[i])) {
       mask[i] = maskCount;
       maskCount++;
+      continue;
     }
 
     //validity check: all unmasked positions should be numbers
@@ -87,6 +88,13 @@ export function preprocessor(
     }
   }
 
+  //if a token is a number in format .xxx, add a 0 before it
+  for (let i = 0; i < tokens.length; i++) {
+    if (tokens[i][0] === ".") {
+      tokens[i] = "0" + tokens[i];
+    }
+  }
+
   //if we don't need implied mult, return the tokens
   if (!implyMult) {
     return tokens;
@@ -99,8 +107,15 @@ export function preprocessor(
     const firstToken = tokens[i];
     const secondToken = tokens[j];
 
-    const isFirstVarConst = /([a-z])|(-?[0-9]+(\.[0-9]+)?)/.test(firstToken);
-    const isSecondVarConst = /([a-z])|(-?[0-9]+(\.[0-9]+)?)/.test(secondToken)
+    //check if tokens are single-char variables or numbers
+    const isFirstVarConst =
+      /^(-?[a-z])|(-?[0-9]+(\.[0-9]+)?)$/.test(firstToken) ||
+      specialConstants.includes(firstToken); 
+    const isSecondVarConst =
+      /^(-?[a-z])|(-?[0-9]+(\.[0-9]+)?)$/.test(secondToken) ||
+      specialConstants.includes(secondToken);
+
+    //implied multiplication
 
     //Case 1: variable/constant followed by variable/constant
     if (isFirstVarConst && isSecondVarConst) {
@@ -131,14 +146,23 @@ export function preprocessor(
       tokens.splice(j, 0, "*");
     }
 
-    //Case 4: negative sign followed by variable/constant
+      
+    //implied negation  
+      
+    //Case 5: negative sign followed by variable/constant
     else if (firstToken === "-" && isSecondVarConst) {
-      //negate the second token and add +
-      tokens[j] = "-" + tokens[j];
-      tokens[i] = "+";
+      //if the var/const is not special
+      if (!specialConstants.includes(secondToken)) {
+
+        //negate the second token and add +
+        tokens[j] = "-" + tokens[j];
+        tokens[i] = "+";
+      }
+
+      //elsewise (if the var/const is special), do nothing
     }
 
-    //Case 5: negative sign followed by left parenthesis/multi-character operator
+    //Case 6: negative sign followed by left parenthesis/multi-character operator
     else if (
       firstToken === "-" &&
       (secondToken[0] === "(" || multicharOperators.includes(secondToken))
