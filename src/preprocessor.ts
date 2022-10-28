@@ -83,15 +83,19 @@ export function preprocessor(input: string, implyMult = true): string[] {
     return tokens;
   }
 
-  //insert implied multiplication operators
+  //add implied multiplication operators and implied negative signs
 
   //loop through tokens in pairs
   for (let i = 0, j = 1; j < tokens.length; j++ , i++) {
     const firstToken = tokens[i];
     const secondToken = tokens[j];
 
-    const isFirstVarConst = /[a-z0-9.]/.test(firstToken[0]);
-    const isSecondVarConst = /[a-z0-9.]/.test(secondToken[0]);
+    const isFirstVarConst = /([a-z])|(-?[0-9]+(\.[0-9]+)?)/.test(firstToken);
+    const isSecondVarConst = /([a-z])|(-?[0-9]+(\.[0-9]+)?)/.test(
+      secondToken
+    );
+
+    console.log(firstToken, secondToken, isFirstVarConst, isSecondVarConst);
 
     //Case 1: variable/constant followed by variable/constant
     if (isFirstVarConst && isSecondVarConst) {
@@ -112,6 +116,14 @@ export function preprocessor(input: string, implyMult = true): string[] {
       isSecondVarConst
     ) {
       tokens.splice(j, 0, "*");
+    }
+
+    //Case 4: negative sign followed by variable/constant
+    else if (firstToken === "-" && isSecondVarConst) {
+
+      //negate the second token and add +
+      tokens[j] = "-" + tokens[j];
+      tokens[i] = "+";
     }
   }
 
